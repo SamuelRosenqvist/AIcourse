@@ -1,6 +1,7 @@
-from GameBoard import get_legal_moves_with_scores_and_flipped_tiles,move_with_list,undo_move, eval_board, count_player_lead
+from GameBoard import get_legal_moves_with_scores_and_flipped_tiles,move_with_list,undo_move, eval_board, count_player_lead,get_legal_moves
 import math
 from operator import itemgetter
+import time
 
 class BotClass:
     def __init__(self, player=1):
@@ -19,6 +20,9 @@ class BotClass:
 
     # returns the best move
     def getmove(self, board, player, depth, time_remaining=None):
+        if time_remaining - time.time() < 1:
+            moves = get_legal_moves(board,player)
+            return moves[0]
         _, bestmove = self._minimax(board, player, time_remaining, depth)
         return bestmove
 
@@ -29,6 +33,8 @@ class BotClass:
             score = count_player_lead(board,player)
             return score, None
         bestmove = (moves[0][0],moves[0][1])
+        if time_remaining - time.time() < 3:
+            return None, bestmove
         bestscore = - math.inf
         for x,y,_,flip_tiles in moves:
             old_tiles = move_with_list(board,player,x,y,flip_tiles)

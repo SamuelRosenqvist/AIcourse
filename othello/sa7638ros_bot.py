@@ -3,6 +3,8 @@ import socket
 import random
 from GameBoard import getBoard, move, game_over
 import copy
+import time
+import re
 # Implementatopn of an interaction with Othellio server 0.95
 # I haven't the slightest idea...  
 
@@ -30,6 +32,10 @@ if __name__ == "__main__":
     s.connect((HOST, PORT))
     s.sendall(IDSTRING)  # send id
     data = s.recv(1024)  # Helloyourid!  Your current win count is #
+    print(repr(data))
+    timeData = s.recv(1024)  # Your time limit is # secs
+    print(repr(data))
+    end_time = time.time() + int(re.search(r'\d+', timeData).group())      
     data = s.recv(1024)  # choose colour, ’d’ for dark, ’w’ for white.
     print(repr(data))    
     s.sendall(botcolor)  # d|w
@@ -49,11 +55,11 @@ if __name__ == "__main__":
             turn = bot.player
 
         if turn == bot.player:
-            coords = bot.getmove(board,copy.copy(bot.player),depth)
+            coords = bot.getmove(board,copy.copy(bot.player),depth, end_time)
             if coords!=None:  # passes turn if no legal moves
                 x,y = coords
                 move(board,bot.player,x,y)
-                s.send(intToChar(x)+str(y))
+                s.sendall(intToChar(x)+str(y))
         else:
             data = s.recv(1024)
             x,y = charToInt(data[-2]),data[-1]
