@@ -63,7 +63,7 @@ if __name__ == "__main__":
 
     print("===Batch descent===")
     w = np.zeros(X.shape[1]).reshape((-1, 1))
-    w = stochastic_GD(X, y, alpha, w)
+    w = batch_GD(X, y, alpha, w)
     print("Weights", w)
     print("SSE", sse(X, y, w))
     maxima = maxima.reshape(-1, 1)
