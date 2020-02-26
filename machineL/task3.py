@@ -15,7 +15,12 @@ def loadLIBSVMfile(s):
         label = [float(obs[0]) for obs in info]
         f1 = [list(map(float,obs[1].split(':')))[1] for obs in info]
         f2 = [list(map(float,obs[2].split(':')))[1] for obs in info]
-        return label,f1,f2
+        if len(info[0])==4:
+            f3 = [list(map(float,obs[3].split(':')))[1] for obs in info]
+            f3=normalize(f3)
+        else:
+            f3=None
+        return label,normalize(f1),normalize(f2),f3
 
 def normalize(X):
     return [x/max(X) for x in X]
@@ -24,7 +29,7 @@ def indices(X, elem):
     return [ i for i in range(len(X)) if X[i] == elem ]
 
 def predict(row, weights):
-    return 1/(1+math.exp(-(np.dot(np.array(row[:-1]),np.array(weights[1:])))))
+    return 1/(1+math.exp(-(np.dot(np.array(row[1:]),np.array(weights[1:])))))
 
 def logisticRegressionTrain(dataset, a, tol): #tol tolerance
     w = [-1+2*random.random() for i in range(len(dataset[0]))] #inits some random weights in interval [-1,1]
@@ -36,10 +41,10 @@ def logisticRegressionTrain(dataset, a, tol): #tol tolerance
         iter+=1
         for row in dataset:
             pred = predict(row,w)
-            err = row[-1] - pred #y-yj
+            err = row[0] - pred #y-yj
             w[0] = w[0] + a*err
             for i in range(len(row)-1):
-                w[i + 1] = w[i + 1] + a * err * row[i]
+                w[i + 1] = w[i + 1] + a * err * row[i+1]
         if np.linalg.norm(np.array(w)-np.array(w_old)) / np.linalg.norm(np.array(w)) < tol:
             #print("Epoch",iter)
             break
@@ -58,16 +63,20 @@ def leave_one_out(dataset,index):
 if __name__ == "__main__":
     # learning rate alpha and stop_criterion accepted nr 
     # of misclassifications when determining the weights
-    learning_rate,tol = .4,0.0005
-    libsvm_input_file = 'machineL/salammbo/salammbo_a_binary.libsvm'
-    print('Running logistic regression')
+    learning_rate,tol = .4, 0.0005
+    libsvm_input_file = 'machineL/salammbo/salammbo_a_e_binary.libsvm'
+
+
+
+    print('Running logistic regression, with leave one out validation')
     print("Learning rate: %f \nTolerance: %f \nUsing data: %s" % (learning_rate, tol, libsvm_input_file))
 
-    label,f1,f2 = loadLIBSVMfile(libsvm_input_file)
-    nf1=normalize(f1)
-    nf2=normalize(f2)
-    dataset = [[nf1[i],nf2[i],label[i]] for i in range(len(label))] #row: normalized feature1, feature2, label
-
+    label,f1,f2,f3 = loadLIBSVMfile(libsvm_input_file)
+    # yes, I'm well aware this is bad but at least the regression trainer takes general input
+    if f3 != None:
+        dataset = [[label[i],f1[i],f2[i],f3[i]] for i in range(len(label))] #row: normalized label, feature1, feature2
+    else:
+        dataset = [[label[i],f1[i],f2[i]] for i in range(len(label))]
 
     # for each row split the data by traning the perceptron on all except one row, 
     # then validate on excluded row and increment var "correct" if classification is correct
@@ -83,9 +92,11 @@ if __name__ == "__main__":
             prediction=0
         #print(weights)
         #print("Expected=%d, Predicted=%d" % (valdata[-1], prediction))
-        if valdata[-1] == prediction:
+        if valdata[0] == prediction:
             correct = correct + 1
-            #print(correct)
+            #print("Correct prediction: \nValidation data: %a\nWeights: %a\n" % (valdata,weights))
+        #else:
+        #    print("Incorrect prediction: \nValidation data: %a\nWeights: %a\n" % (valdata,weights))
     correctly_predicted = 100*(correct/len(label))
     print("Final evaluation: %d%% correct" % (correctly_predicted))
     

@@ -53,7 +53,10 @@ def stochastic_GD(x,y,a,w):
     return w
 
 if __name__ == "__main__":
-    X,y = loadtsvfile('machineL/salammbo/salammbo_a_en.tsv')
+    dataS = 'machineL/salammbo/salammbo_e_en.tsv'
+    batch_descent = False # if set to false uses stochastic instead
+
+    X,y = loadtsvfile(dataS)
     y = np.array([y]).T
 
     X, maxima_X = normalize(X)
@@ -61,11 +64,15 @@ if __name__ == "__main__":
     maxima = np.concatenate((maxima_X, maxima_y))
     alpha = 1.0
 
-    print("===Batch descent===")
     w = np.zeros(X.shape[1]).reshape((-1, 1))
-    w = batch_GD(X, y, alpha, w)
+    if batch_descent:
+        print("Running batch descent===")
+        w = batch_GD(X, y, alpha, w)
+    else:
+        print("Running stochastic descent===")
+        w = stochastic_GD(X, y, alpha, w)
     print("Weights", w)
-    print("SSE", sse(X, y, w))
+    #print("SSE", sse(X, y, w))
     maxima = maxima.reshape(-1, 1)
     w = maxima[-1, 0] * (w / maxima[:-1, 0:1])
     print("Restored weights", w)

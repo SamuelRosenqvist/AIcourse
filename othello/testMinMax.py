@@ -5,14 +5,17 @@ import RandBot
 import time
 import random
 import copy
-import time
+from statistics import mean
 
 def compete(n,depth,bot):
     maxBot,randBot,tie=0,0,0
+    gametimes=[]
     for _ in range(n):
         botColor = random.randint(1,2)
         bot.changeColor(botColor)
+        startTime = time.time()
         (x,y) = oneRound(copy.copy(depth),bot)
+        gametimes.append(time.time()-startTime)
         if x==y:
             tie+=1
         elif bot.player==1:
@@ -25,7 +28,7 @@ def compete(n,depth,bot):
                 maxBot += 1
             else:
                 randBot +=1
-    return (maxBot,randBot,tie)
+    return (maxBot,randBot,tie,gametimes)
 
 def nextTurn(turn):
     if turn==1:
@@ -34,13 +37,12 @@ def nextTurn(turn):
         return 1
 
 def oneRound(depth,bot):
-    end_time  = time.time()+4
     board = getBoard()
     turn = 1
     #print('Minimaxbot playing as: {}'.format(bot.player))
     while not game_over(board):
         if turn == bot.player:
-            coords = bot.getmove(board,copy.copy(bot.player),depth,end_time)
+            coords = bot.getmove(board,copy.copy(bot.player),depth,time.time()+time_limit)
             #print(v,x+1,y+1)
             if coords!=None:
                 x,y = coords
@@ -72,6 +74,8 @@ if __name__ == "__main__":
     #    print('MinimaxBot wins: {}\nRandBot wins: {}\nTies: {}\n\n'.format(p1,p2,tie))
     #    tally[i-2]=(p1,i)
     #print(tally)
-    (p1,p2,tie)=compete(10,4,_bot)
-    print('MinimaxBot wins: {}\nRandBot wins: {}\nTies: {}'.format(p1,p2,tie))
+    games=100
+    time_limit=20
+    (p1,p2,tie,gameTimes)=compete(games,4,_bot)
+    print('MinimaxBot wins: {}\nRandBot wins: {}\nTies: {}\nWin percentage: {}%\nMean gametime: {}s'.format(p1,p2,tie,100*(p1/games),mean(gameTimes)))
 
