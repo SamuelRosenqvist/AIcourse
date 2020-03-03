@@ -11,3 +11,17 @@ machineL/__pycache__/task2.cpython-38.pyc
 machineL/__pycache__/task3.cpython-38.pyc
 Assignment2.zip
 othello/1000rounds.txt
+probReasoning/RobotLocalization/.classpath
+probReasoning/RobotLocalization/.project
+probReasoning/RobotLocalization/.settings/org.eclipse.jdt.core.prefs
+probReasoning/RobotLocalization/bin/control/EstimatorInterface.class
+probReasoning/RobotLocalization/bin/control/LocalizationDriver.class
+probReasoning/RobotLocalization/bin/control/Main.class
+probReasoning/RobotLocalization/bin/model/DummyLocalizer.class
+probReasoning/RobotLocalization/bin/view/RobotLocalizationViewer.class
+probReasoning/RobotLocalization/bin/view/RobotLocalizationViewer$1.class
+probReasoning/RobotLocalization/bin/view/RobotLocalizationViewer$2.class
+probReasoning/RobotLocalization/bin/view/RobotLocalizationViewer$3.class
+probReasoning/RobotLocalization/bin/view/RobotLocalizationViewer$4.class
+probReasoning/RobotLocalization/bin/view/RobotLocalizationViewer$5.class
+probReasoning/RobotLocalization/bin/view/RobotLocalizationViewer$6.class
