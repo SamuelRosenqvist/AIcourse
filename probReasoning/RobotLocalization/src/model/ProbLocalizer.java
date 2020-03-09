@@ -14,7 +14,7 @@ public class ProbLocalizer implements EstimatorInterface {
     private double[][] fMatrix;
     private boolean sensorSuccess;
     private Random Prand = new Random(); 
-    private double averageDist;
+    private double totalDist;
     private int iterations;
     //private boolean initFlag;
 
@@ -28,7 +28,7 @@ public class ProbLocalizer implements EstimatorInterface {
         this.transposedTM = new double[rows*cols*4][rows*cols*4];
         this.observationMatrices = new double[rows*cols*4][rows*cols];
         this.fMatrix = new double[rows*cols*4][rows*cols*4];
-        this.averageDist = 0;
+        this.totalDist = 0;
         this.iterations = 0;
         //this.initFlag = false;
 
@@ -377,7 +377,10 @@ public class ProbLocalizer implements EstimatorInterface {
 	public double getCurrentProb( int x, int y) {
         double p = 0;
         for(int i = 0; i<=3; i++){
-            p += fMatrix[x*cols*4+y*4+i][x*cols*4+y*4+i];
+            for(int j=0;j<rows*cols*4;j++){
+                p += fMatrix[x*cols*4+y*4+i][j];
+            }
+            //p += fMatrix[x*cols*4+y*4+i][x*cols*4+y*4+i];
         }
         return p;
 	}
@@ -405,14 +408,18 @@ public class ProbLocalizer implements EstimatorInterface {
             }
         }
  
-        
+        // forward step
         fMatrix = alpha(mMult(mMult(obsM,transposedTM),fMatrix));
-        for(int i=0;i<fMatrix.length;i++){
+        manhattanEval();
+        double averageDist = totalDist/iterations;
+        System.out.println("Average distance: " + averageDist + "  Iteration: " + iterations);
+        // fmatrix
+        /* for(int i=0;i<fMatrix.length;i++){
             for(int j=0;j<fMatrix[0].length;j++){
                 System.out.print(fMatrix[i][j] + " ");
             }	
-            System.out.println("---");
-        } 
+            System.out.println("---"); 
+        } */
         // probabilities
         /* 
         for(int i=0;i<rows;i++){
@@ -430,13 +437,11 @@ public class ProbLocalizer implements EstimatorInterface {
                 sum += M[i][j];
             }  
         }
-        System.out.println(sum);
         for (int i = 0; i < rows*cols*4; i++){
             for (int j = 0; j < rows*cols*4; j++){
-                M[i][j] = 10*M[i][j]/sum;
+                M[i][j] = 2*M[i][j]/sum;
             }  
         }
-        //System.out.println(sum);
         return M;
     }
 
@@ -511,15 +516,23 @@ public class ProbLocalizer implements EstimatorInterface {
     }
 
     private void manhattanEval(){
-        double tx = trueState[0];
-        double ty = trueState[1];
-        double sx = sensorState[0];
-        double sy = sensorState[1];
-        double dist = Math.abs(tx-sx)+Math.abs(ty-sy);
-        System.out.println("Distance: " + dist);
-        averageDist+=dist;
-        averageDist = averageDist/2;
-        System.out.println("Average distance: " + averageDist);
+        double max = 0;
+        int x = -1;
+        int y = -1;  
+        for(int i=0;i<rows;i++){
+            for(int j=0;j<rows;j++){
+                if(max<getCurrentProb(i, j)){
+                    max=getCurrentProb(i, j);
+                    x=i;
+                    y=j;
+                }
+            }	
+        }    
 
+        int tx = trueState[0];
+        int ty = trueState[1];
+        int dist = Math.abs(tx-x)+Math.abs(ty-y);
+        //System.out.println("Manhattan dist: " + dist);
+        totalDist+=dist;
     }
 }
