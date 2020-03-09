@@ -58,6 +58,8 @@ public class DummyLocalizer implements EstimatorInterface {
 	public void update() {
 		System.out.println("Nothing is happening, no model to go for...");
 	}
-	
+	public void init(){
+		
+	}
 	
 }
