@@ -6,17 +6,19 @@ import java.util.Random;
 public class ProbLocalizer implements EstimatorInterface {
 		
     private int rows, cols, head;
-    private int[] trueState; // x,y,h  where heading is 0,1,2,3 = n,e,s,w
+    private int[] trueState;
     private int[] sensorState;
     private double[][] transitionMatrix;
     private double[][] transposedTM;
-    public double[][] observationMatrices;  //rows*cols+1 nr of observation matrices stored as column vectors
+    public double[][] observationMatrices;
     private double[][] fMatrix;
     private boolean sensorSuccess;
     private Random Prand = new Random(); 
     private double totalDist;
     private int iterations;
-    //private boolean initFlag;
+    private int correctval;
+    private double totalDistR;
+    private int correctvalR;
 
 	public ProbLocalizer( int rows, int cols, int head) {
 		this.rows = rows;
@@ -30,12 +32,18 @@ public class ProbLocalizer implements EstimatorInterface {
         this.fMatrix = new double[rows*cols*4][rows*cols*4];
         this.totalDist = 0;
         this.iterations = 0;
-        //this.initFlag = false;
+        this.correctval=0;
+        this.totalDistR = 0;
+        this.correctvalR=0;
 
+        
         Random rand = new Random(); 
         int start_x = rand.nextInt(rows); 
         int start_y = rand.nextInt(cols); 
         int start_h;
+        sensorState[0] = start_x; //Math.round(rows/2);
+        sensorState[1] = start_y; //Math.round(cols/2);
+
         if       (start_x==0 && start_y==0){
             start_h = 1+rand.nextInt(2);
         } else if(start_x==0 && start_y==cols){
@@ -60,10 +68,94 @@ public class ProbLocalizer implements EstimatorInterface {
         this.trueState[2] = start_h; 
 
         for(int i =0;i<=rows*cols*4-1;i++){
-                fMatrix[i][i]=(double)1/(rows*cols*4);
+            for(int j =0;j<=rows*cols*4-1;j++){
+                fMatrix[i][j]=(double)1/((rows*cols*4-1)*(rows*cols*4-1));
+            }
         }
         init();
     }	
+
+
+    public double getCurrentProb( int x, int y) {
+        double p = 0;
+        for(int i = 0; i<=3; i++){
+            for(int j=0;j<rows*cols*4;j++){
+                p += fMatrix[x*cols*4+y*4+i][j];
+            }
+        }
+        return p;
+	}
+	
+	public void update() {
+        iterations++;
+        moveBot();
+        double rd = Prand.nextDouble();
+        double q_nothing = nothingProb(trueState[0], trueState[1]);
+        if(rd<=q_nothing){
+            sensorSuccess=false;
+           /*  if(sensorState[0]<rows/2 && sensorState[0]>=2){
+                sensorState[0]--;
+            } else if(sensorState[0]<rows-2) {
+                sensorState[0]++;
+            }
+
+            if(sensorState[1]<cols/2 && sensorState[1]>=2){
+                sensorState[1]--;
+            } else  if(sensorState[1]<cols-2){
+                sensorState[1]++;
+            } 
+ */
+        } else {
+            sensorSuccess=true;
+            setSensorState();
+        }
+
+        int x = sensorState[0];
+        int y = sensorState[1];
+        double[] obsR = observationMatrices[x*cols*4+y*4+head-1];
+        double[][] obsM = new double[rows*cols*4][rows*cols*4];
+        for(int i = 0; i<rows*cols; i++){
+            for(int j = 0; j<4;j++){
+                obsM[i*head+j][i*head+j] = obsR[i];
+            }
+        }
+
+ 
+        // forward step
+        fMatrix = alpha(mMult(obsM,mMult(transposedTM,fMatrix)));
+
+        double sum = 0;
+        for(int i = 0; i<fMatrix.length;i++){
+            for (double value : fMatrix[i]) {
+                sum += value;
+            }
+        }
+        // if fmatrix somehow becomes all NaN just reinstantiate it
+        if(Double.isNaN(sum)){
+            for(int i =0;i<=rows*cols*4-1;i++){
+                for(int j =0;j<=rows*cols*4-1;j++){
+                    fMatrix[i][j]=(double)1/((rows*cols*4-1)*(rows*cols*4-1));
+                }
+            }
+        }
+        manhattanEval();
+    }
+
+    private double[][] alpha(double[][] M){
+        double sum = 0;
+        for (int i = 0; i < rows*cols*4; i++){
+            for (int j = 0; j < rows*cols*4; j++){
+                sum += M[i][j];
+            }  
+        }
+        for (int i = 0; i < rows*cols*4; i++){
+            for (int j = 0; j < rows*cols*4; j++){
+                M[i][j] = 1.5*M[i][j]/sum;
+            }  
+        }
+        return M;
+    }
+
     
     
     private void init(){
@@ -349,7 +441,6 @@ public class ProbLocalizer implements EstimatorInterface {
         if(rX == -1 || rY == -1){
             return 0.6;
         }
-        //System.out.println("getOrXY " + rX +" "+ rY +" "+ x +" "+ y +" "+ h);
 		return observationMatrices[x*cols*4+y*4+h][rX*cols+rY];
 	}
 
@@ -374,76 +465,6 @@ public class ProbLocalizer implements EstimatorInterface {
 	}
 
 
-	public double getCurrentProb( int x, int y) {
-        double p = 0;
-        for(int i = 0; i<=3; i++){
-            for(int j=0;j<rows*cols*4;j++){
-                p += fMatrix[x*cols*4+y*4+i][j];
-            }
-            //p += fMatrix[x*cols*4+y*4+i][x*cols*4+y*4+i];
-        }
-        return p;
-	}
-	
-	public void update() {
-        iterations++;
-        moveBot();
-        double rd = Prand.nextDouble();
-        double q_nothing = nothingProb(trueState[0], trueState[1]);
-        if(rd<=q_nothing){
-            sensorSuccess=false;
-        } else {
-            sensorSuccess=true;
-            setSensorState();
-        }
-
-        int[] sens = sensorState;
-        int x = sens[0];
-        int y = sens[1];
-        double[] obsR = observationMatrices[x*cols*4+y*4+head-1];
-        double[][] obsM = new double[rows*cols*4][rows*cols*4];
-        for(int i = 0; i<rows*cols; i++){
-            for(int j = 0; j<4;j++){
-                obsM[i*head+j][i*head+j] = obsR[i];
-            }
-        }
- 
-        // forward step
-        fMatrix = alpha(mMult(mMult(obsM,transposedTM),fMatrix));
-        manhattanEval();
-        double averageDist = totalDist/iterations;
-        System.out.println("Average distance: " + averageDist + "  Iteration: " + iterations);
-        // fmatrix
-        /* for(int i=0;i<fMatrix.length;i++){
-            for(int j=0;j<fMatrix[0].length;j++){
-                System.out.print(fMatrix[i][j] + " ");
-            }	
-            System.out.println("---"); 
-        } */
-        // probabilities
-        /* 
-        for(int i=0;i<rows;i++){
-            for(int j=0;j<rows;j++){
-                System.out.print(getCurrentProb(i, j) + " ");
-            }	
-            System.out.println("---");
-        }    */
-    }
-
-    private double[][] alpha(double[][] M){
-        double sum = 0;
-        for (int i = 0; i < rows*cols*4; i++){
-            for (int j = 0; j < rows*cols*4; j++){
-                sum += M[i][j];
-            }  
-        }
-        for (int i = 0; i < rows*cols*4; i++){
-            for (int j = 0; j < rows*cols*4; j++){
-                M[i][j] = 2*M[i][j]/sum;
-            }  
-        }
-        return M;
-    }
 
 
     private double[][] mMult(double[][] A, double[][] B){
@@ -532,7 +553,34 @@ public class ProbLocalizer implements EstimatorInterface {
         int tx = trueState[0];
         int ty = trueState[1];
         int dist = Math.abs(tx-x)+Math.abs(ty-y);
-        //System.out.println("Manhattan dist: " + dist);
+        if(dist==0){
+            correctval++;
+        }
         totalDist+=dist;
+
+        /* //random guesser
+        int distR = Math.abs(tx-Prand.nextInt(rows))+Math.abs(ty-Prand.nextInt(cols));
+        if(distR==0){
+            correctvalR++;
+        }
+        totalDistR+=distR;
+
+        double averageDistR = totalDistR/iterations;
+        double accuR = (double)correctvalR/iterations; */
+
+        // sensor predictor
+        int distR = Math.abs(tx-sensorState[0])+Math.abs(ty-sensorState[1]);
+        if(distR==0){
+            correctvalR++;
+        }
+        totalDistR+=distR;
+
+        double averageDistR = totalDistR/iterations;
+        double accuR = (double)correctvalR/iterations;
+
+        double averageDist = totalDist/iterations;
+        double accu = (double)correctval/iterations;
+        System.out.println("Accuracy: " + accu + "  Average distance: " + averageDist + "  Accuracy(Other): " + accuR + "  Average distance(Other): " + averageDistR + "  Iteration: " + iterations);
     }
+
 }
