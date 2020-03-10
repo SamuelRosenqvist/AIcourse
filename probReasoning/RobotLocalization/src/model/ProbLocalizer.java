@@ -19,6 +19,7 @@ public class ProbLocalizer implements EstimatorInterface {
     private int correctval;
     private double totalDistR;
     private int correctvalR;
+    private int sensorFail;
 
 	public ProbLocalizer( int rows, int cols, int head) {
 		this.rows = rows;
@@ -35,6 +36,7 @@ public class ProbLocalizer implements EstimatorInterface {
         this.correctval=0;
         this.totalDistR = 0;
         this.correctvalR=0;
+        this.sensorFail=0;
 
         
         Random rand = new Random(); 
@@ -94,8 +96,9 @@ public class ProbLocalizer implements EstimatorInterface {
         double[][] obsM = new double[rows*cols*4][rows*cols*4];
         if(rd<=q_nothing){
             sensorSuccess=false;
+            sensorFail++;
             for(int i = 0; i<rows*cols*4; i++){
-                obsM[i][i] = observationMatrices[observationMatrices.length][i];
+                obsM[i][i] = observationMatrices[observationMatrices.length-1][i];
             }
         } else {
             sensorSuccess=true;
@@ -112,20 +115,6 @@ public class ProbLocalizer implements EstimatorInterface {
         // forward step
         fMatrix = alpha(mMult(obsM,mMult(transposedTM,fMatrix)));
 
-        double sum = 0;
-        for(int i = 0; i<fMatrix.length;i++){
-            for (double value : fMatrix[i]) {
-                sum += value;
-            }
-        }
-        // if fmatrix somehow becomes all NaN just reinstantiate it
-        /* if(Double.isNaN(sum)){
-            for(int i =0;i<=rows*cols*4-1;i++){
-                for(int j =0;j<=rows*cols*4-1;j++){
-                    fMatrix[i][j]=(double)1/((rows*cols*4-1)*(rows*cols*4-1));
-                }
-            }
-        } */
         manhattanEval();
     }
 
@@ -216,7 +205,7 @@ public class ProbLocalizer implements EstimatorInterface {
         double sum = 0.0;
         double[] temp = observationMatrices[r*cols+c];
         for (double v : temp){
-            sum += v;
+            sum += v/4;
         }
         return (1-sum);
     }
@@ -574,7 +563,8 @@ public class ProbLocalizer implements EstimatorInterface {
 
         double averageDist = totalDist/iterations;
         double accu = (double)correctval/iterations;
-        System.out.println("Accuracy: " + accu + "  Average distance: " + averageDist + "  Accuracy(Other): " + accuR + "  Average distance(Other): " + averageDistR + "  Iteration: " + iterations);
+        double sensuptime = (double)(iterations-sensorFail)/iterations;
+        System.out.println("Accuracy: " + accu + "  Average distance: " + averageDist + "  Accuracy(Other): " + accuR + "  Average distance(Other): " + averageDistR + "  Sensor uptime: " + sensuptime + "  Iteration: " + iterations);
     }
 
 }
