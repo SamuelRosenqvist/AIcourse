@@ -28,7 +28,7 @@ public class ProbLocalizer implements EstimatorInterface {
         this.sensorState = new int[2];
         this.transitionMatrix = new double[rows*cols*4][rows*cols*4];
         this.transposedTM = new double[rows*cols*4][rows*cols*4];
-        this.observationMatrices = new double[rows*cols*4][rows*cols];
+        this.observationMatrices = new double[rows*cols+1][rows*cols*4];
         this.fMatrix = new double[rows*cols*4][rows*cols*4];
         this.totalDist = 0;
         this.iterations = 0;
@@ -41,8 +41,8 @@ public class ProbLocalizer implements EstimatorInterface {
         int start_x = rand.nextInt(rows); 
         int start_y = rand.nextInt(cols); 
         int start_h;
-        sensorState[0] = start_x; //Math.round(rows/2);
-        sensorState[1] = start_y; //Math.round(cols/2);
+        sensorState[0] = Math.round(rows/2);
+        sensorState[1] = Math.round(cols/2);
 
         if       (start_x==0 && start_y==0){
             start_h = 1+rand.nextInt(2);
@@ -91,32 +91,20 @@ public class ProbLocalizer implements EstimatorInterface {
         moveBot();
         double rd = Prand.nextDouble();
         double q_nothing = nothingProb(trueState[0], trueState[1]);
+        double[][] obsM = new double[rows*cols*4][rows*cols*4];
         if(rd<=q_nothing){
             sensorSuccess=false;
-           /*  if(sensorState[0]<rows/2 && sensorState[0]>=2){
-                sensorState[0]--;
-            } else if(sensorState[0]<rows-2) {
-                sensorState[0]++;
+            for(int i = 0; i<rows*cols*4; i++){
+                obsM[i][i] = observationMatrices[observationMatrices.length][i];
             }
-
-            if(sensorState[1]<cols/2 && sensorState[1]>=2){
-                sensorState[1]--;
-            } else  if(sensorState[1]<cols-2){
-                sensorState[1]++;
-            } 
- */
         } else {
             sensorSuccess=true;
             setSensorState();
-        }
-
-        int x = sensorState[0];
-        int y = sensorState[1];
-        double[] obsR = observationMatrices[x*cols*4+y*4+head-1];
-        double[][] obsM = new double[rows*cols*4][rows*cols*4];
-        for(int i = 0; i<rows*cols; i++){
-            for(int j = 0; j<4;j++){
-                obsM[i*head+j][i*head+j] = obsR[i];
+            int x = sensorState[0];
+            int y = sensorState[1];
+            double[] obsR = observationMatrices[x*cols+y];
+            for(int i = 0; i<rows*cols*4; i++){
+                obsM[i][i] = obsR[i];
             }
         }
 
@@ -131,13 +119,13 @@ public class ProbLocalizer implements EstimatorInterface {
             }
         }
         // if fmatrix somehow becomes all NaN just reinstantiate it
-        if(Double.isNaN(sum)){
+        /* if(Double.isNaN(sum)){
             for(int i =0;i<=rows*cols*4-1;i++){
                 for(int j =0;j<=rows*cols*4-1;j++){
                     fMatrix[i][j]=(double)1/((rows*cols*4-1)*(rows*cols*4-1));
                 }
             }
-        }
+        } */
         manhattanEval();
     }
 
@@ -183,19 +171,26 @@ public class ProbLocalizer implements EstimatorInterface {
         // fill in the observation matrices
         for(int r = 0 ; r<rows; r++){
             for(int c = 0 ; c<cols; c++){
-                for(int h = 0; h<=3; h++){
 
                     for(int nr=0;nr <rows; nr++){
                         for(int nc=0;nc<cols;nc++){
-                            if(r==nr && c==nc){
-                                observationMatrices[(r*cols*4+c*4+h)][(nr*cols)+nc] = 0.1;
-                            } else if(is1Neighbour(r,c,nr,nc)){
-                                observationMatrices[(r*cols*4+c*4+h)][(nr*cols)+nc] = 0.05;
-                            } else if(is2Neighbour(r,c,nr,nc)){
-                                observationMatrices[(r*cols*4+c*4+h)][(nr*cols)+nc] = 0.025;
+                            for(int nh=0;nh<=3;nh++){  
+                                if(r==nr && c==nc){
+                                    observationMatrices[(r*cols)+c][(nr*cols*4+nc*4+nh)] = 0.1;
+                                } else if(is1Neighbour(r,c,nr,nc)){
+                                    observationMatrices[(r*cols)+c][(nr*cols*4+nc*4+nh)] = 0.05;
+                                } else if(is2Neighbour(r,c,nr,nc)){
+                                    observationMatrices[(r*cols)+c][(nr*cols*4+nc*4+nh)] = 0.025;
+                                }
                             }
                         }
                     }
+                }
+            }
+        for(int nr=0;nr <rows; nr++){
+            for(int nc=0;nc<cols;nc++){
+                for(int nh=0;nh<=3;nh++){  
+                    observationMatrices[rows*cols][(nr*cols*4+nc*4+nh)] = nothingProb(nr, nc);
                 }
             }
         }
@@ -439,9 +434,10 @@ public class ProbLocalizer implements EstimatorInterface {
 
 	public double getOrXY( int rX, int rY, int x, int y, int h) {
         if(rX == -1 || rY == -1){
+            // I don't get it...
             return 0.6;
         }
-		return observationMatrices[x*cols*4+y*4+h][rX*cols+rY];
+		return observationMatrices[x*cols+y][rX*cols*4+rY*4+h];
 	}
 
 
@@ -519,18 +515,16 @@ public class ProbLocalizer implements EstimatorInterface {
         int x = tS[0];
         int y = tS[1];
         int h = tS[2];
-        double[][] obsRow = new double[rows*cols][3];
         RandomCollection<double[]> rc = new RandomCollection<double[]>();
 
-        for(int i = 0; i<cols*rows; i++){
-            if(observationMatrices[x*cols*4+y*4+h][i]!=(double)0.0){
-                obsRow[i][0]=(i-(i%cols))/cols;
-                obsRow[i][1]=i-obsRow[i][0]*cols;
-                obsRow[i][2]=observationMatrices[x*cols*4+y*4+h][i];
-                rc.add(obsRow[i][2],obsRow[i]);
+        for(int px = 0; px<cols; px++){
+            for(int py = 0; py<cols; py++){
+                if(observationMatrices[x*cols+y][px*cols*4+py*4]!=0){
+                    rc.add(observationMatrices[x*cols+y][px*cols*4+py*4], new double []{px,py});
+                }
             }
         }
-
+        
         double[] nextPos = rc.next();
         sensorState[0]=(int)nextPos[0];
         sensorState[1]=(int)nextPos[1];
