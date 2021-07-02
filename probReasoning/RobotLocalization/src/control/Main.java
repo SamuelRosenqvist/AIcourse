@@ -22,6 +22,6 @@ public class Main {
 		 * this thread controls the continuous update. If it is not started, 
 		 * you can only click through your localisation stepwise
 		 */
-		new LocalizationDriver( 40, viewer).start();
+		new LocalizationDriver( 0, viewer).start();
 	}
 }	

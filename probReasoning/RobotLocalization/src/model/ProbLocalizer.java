@@ -2,6 +2,8 @@ package model;
 
 import control.EstimatorInterface;
 import java.util.Random;
+import java.text.DecimalFormat;
+import java.math.RoundingMode;
 
 public class ProbLocalizer implements EstimatorInterface {
 		
@@ -546,24 +548,24 @@ public class ProbLocalizer implements EstimatorInterface {
         if(distR==0){
             correctvalR++;
         }
-        totalDistR+=distR;
-
-        double averageDistR = totalDistR/iterations;
-        double accuR = (double)correctvalR/iterations; */
+        */
 
         // sensor predictor
         int distR = Math.abs(tx-sensorState[0])+Math.abs(ty-sensorState[1]);
         if(distR==0){
             correctvalR++;
         }
+
+
         totalDistR+=distR;
+        DecimalFormat df = new DecimalFormat("#.####");
+        df.setRoundingMode(RoundingMode.CEILING);
 
-        double averageDistR = totalDistR/iterations;
-        double accuR = (double)correctvalR/iterations;
-
-        double averageDist = totalDist/iterations;
-        double accu = (double)correctval/iterations;
-        double sensuptime = (double)(iterations-sensorFail)/iterations;
+        String averageDistR = df.format(totalDistR/iterations);
+        String accuR = df.format((double)correctvalR/iterations);
+        String averageDist = df.format(totalDist/iterations);
+        String accu = df.format((double)correctval/iterations);
+        String sensuptime = df.format((double)(iterations-sensorFail)/iterations);
         System.out.println("Accuracy: " + accu + "  Average distance: " + averageDist + "  Accuracy(Other): " + accuR + "  Average distance(Other): " + averageDistR + "  Sensor uptime: " + sensuptime + "  Iteration: " + iterations);
     }
 

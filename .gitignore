@@ -27,3 +27,5 @@ probReasoning/RobotLocalization/bin/view/RobotLocalizationViewer$5.class
 probReasoning/RobotLocalization/bin/view/RobotLocalizationViewer$6.class
 /.metadata/
 probReasoning/.vscode/launch.json
+*.class
+*.zip
